@@ -54,10 +54,19 @@ main =
 -- MODEL
 
 
-type alias Model =
-    { now : Maybe Date
-    , usernameField : String
-    , username : Maybe String
+type Model
+    = Initial InitialModel
+    | Main MainModel
+
+
+type alias InitialModel =
+    { usernameField : String
+    }
+
+
+type alias MainModel =
+    { now : Date
+    , username : String
     , avatarLookup : Dict String String
     , messages : List Message
     , currentMessage : String
@@ -77,22 +86,31 @@ type alias Message =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { now = Nothing
-      , usernameField = ""
-      , username = Nothing
-      , avatarLookup = Dict.empty
-      , messages = []
-      , currentMessage = ""
-      }
+    ( Initial
+        { usernameField = ""
+        }
     , Cmd.none
     )
 
 
 type Msg
+    = Login LoginMsg
+    | App AppMsg
+    | Transition TransitionMsg
+
+
+type LoginMsg
     = SetUsernameField String
-    | SetUsernameResponse (Result Http.Error String)
-    | AttemptToSetUsername
-    | AddAvatarResponse String (Result Http.Error String)
+    | LoginFail Http.Error
+
+
+type TransitionMsg
+    = LoginSuccess ( Date, String )
+    | AttemptToLogin
+
+
+type AppMsg
+    = AddAvatarResponse String (Result Http.Error String)
     | SetCurrentMessage String
     | ReceiveMessage String
     | SendMessage
@@ -103,36 +121,56 @@ type Msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ WebSocket.listen webSocketChatUrl ReceiveMessage
-        , Time.every Time.second (always GetCurrentTime)
-        ]
+    case model of
+        Initial _ ->
+            Sub.none
+
+        Main _ ->
+            Sub.map App <|
+                Sub.batch
+                    [ WebSocket.listen webSocketChatUrl ReceiveMessage
+                    , Time.every Time.second (always GetCurrentTime)
+                    ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Transition _ ->
+            transitionModel msg model
+
+        Login loginMsg ->
+            case model of
+                Initial initialModel ->
+                    updateInitialModel loginMsg initialModel
+                        |> (\( newModel, newCmd ) -> ( Initial newModel, Cmd.map Login newCmd ))
+
+                _ ->
+                    ( model, Cmd.none )
+
+        App appMsg ->
+            case model of
+                Main mainModel ->
+                    updateMainModel appMsg mainModel
+                        |> (\( newModel, newCmd ) -> ( Main newModel, Cmd.map App newCmd ))
+
+                _ ->
+                    ( model, Cmd.none )
+
+
+updateInitialModel : LoginMsg -> InitialModel -> ( InitialModel, Cmd LoginMsg )
+updateInitialModel msg model =
+    case msg of
         SetUsernameField username ->
             ( { model | usernameField = username }, Cmd.none )
 
-        SetUsernameResponse (Ok avatarUrl) ->
-            ( { model
-                | username = Just model.usernameField
-                , usernameField = ""
-                , avatarLookup = Dict.insert model.usernameField avatarUrl model.avatarLookup
-              }
-            , WebSocket.send webSocketChatUrl <| joinMessage model.usernameField
-            )
-
-        SetUsernameResponse (Err _) ->
+        LoginFail err ->
             ( model, Cmd.none )
 
-        AttemptToSetUsername ->
-            ( model
-            , getGithubUserRequest model.usernameField
-                |> Http.send SetUsernameResponse
-            )
 
+updateMainModel : AppMsg -> MainModel -> ( MainModel, Cmd AppMsg )
+updateMainModel msg model =
+    case msg of
         AddAvatarResponse username (Ok avatarUrl) ->
             ( { model | avatarLookup = Dict.insert username avatarUrl model.avatarLookup }
             , Cmd.none
@@ -147,9 +185,9 @@ update msg model =
         ReceiveMessage messageJson ->
             case decodeMessage messageJson of
                 Ok message ->
-                    ( { model | messages = List.append model.messages [ { message | created = model.now } ] }
+                    ( { model | messages = List.append model.messages [ { message | created = Just model.now } ] }
                     , Cmd.batch
-                        [ Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom "messages")
+                        [ Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
                         , case Dict.get message.username model.avatarLookup of
                             Just _ ->
                                 Cmd.none
@@ -164,10 +202,10 @@ update msg model =
                     ( model, Cmd.none )
 
         SendMessage ->
-            ( { model | currentMessage = "", messages = List.append model.messages [ { username = Maybe.withDefault "" model.username, content = model.currentMessage, created = model.now } ] }
+            ( { model | currentMessage = "", messages = List.append model.messages [ { username = model.username, content = model.currentMessage, created = Just model.now } ] }
             , Cmd.batch
-                [ WebSocket.send webSocketChatUrl (encodeMessage { username = Maybe.withDefault "" model.username, content = model.currentMessage, created = model.now })
-                , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom "messages")
+                [ WebSocket.send webSocketChatUrl (encodeMessage { username = model.username, content = model.currentMessage, created = Just model.now })
+                , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
                 ]
             )
 
@@ -175,9 +213,56 @@ update msg model =
             ( model, Task.perform SetCurrentTime Date.now )
 
         SetCurrentTime time ->
-            ( { model | now = Just time }, Cmd.none )
+            ( { model | now = time }, Cmd.none )
 
         NoOp ->
+            ( model, Cmd.none )
+
+
+transitionModel : Msg -> Model -> ( Model, Cmd Msg )
+transitionModel msg model =
+    case model of
+        Initial initialModel ->
+            case msg of
+                Transition transitionMsg ->
+                    case transitionMsg of
+                        LoginSuccess ( now, avatarUrl ) ->
+                            ( Main
+                                { username = initialModel.usernameField
+                                , avatarLookup = Dict.fromList [ ( initialModel.usernameField, avatarUrl ) ]
+                                , now = now
+                                , currentMessage = ""
+                                , messages = []
+                                }
+                            , joinMessage initialModel.usernameField
+                                |> WebSocket.send webSocketChatUrl
+                                |> Cmd.map App
+                            )
+
+                        AttemptToLogin ->
+                            ( Initial initialModel
+                            , getGithubUserRequest initialModel.usernameField
+                                |> Http.toTask
+                                |> Task.andThen
+                                    (\avatarUrl ->
+                                        Date.now
+                                            |> Task.map (\now -> ( now, avatarUrl ))
+                                    )
+                                |> Task.attempt
+                                    (\result ->
+                                        case result of
+                                            Ok payload ->
+                                                Transition <| LoginSuccess payload
+
+                                            Err err ->
+                                                Login <| LoginFail err
+                                    )
+                            )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        Main _ ->
             ( model, Cmd.none )
 
 
@@ -187,48 +272,54 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "app-container" ]
-        [ div [ class "chat" ]
-            [ div [ class "chat-title" ]
-                [ h1 []
-                    [ text "Vapor Chat" ]
-                , h2 []
-                    [ text "Realtime WebSocket chat powered by Vapor" ]
-                , figure [ class "avatar" ]
-                    [ img
-                        [ src "https://avatars3.githubusercontent.com/u/17364220?v=3&amp;s=20"
+    case model of
+        Initial initialModel ->
+            div [ class "app-container" ]
+                [ modal True <| loginModalContent initialModel
+                ]
+
+        Main mainModel ->
+            div [ class "app-container" ]
+                [ div [ class "chat" ]
+                    [ div [ class "chat-title" ]
+                        [ h1 []
+                            [ text "Vapor Chat" ]
+                        , h2 []
+                            [ text "Realtime WebSocket chat powered by Vapor" ]
+                        , figure [ class "avatar" ]
+                            [ img
+                                [ src "https://avatars3.githubusercontent.com/u/17364220?v=3&amp;s=20"
+                                ]
+                                []
+                            ]
                         ]
-                        []
+                    , div
+                        [ class "messages"
+                        , Html.Attributes.id messageContainerId
+                        ]
+                        (List.map (viewMessage mainModel.username mainModel.avatarLookup) mainModel.messages)
+                    , div [ class "message-box" ]
+                        [ form
+                            [ Html.Events.onSubmit (App SendMessage)
+                            ]
+                            [ input
+                                [ type_ "text"
+                                , class "message-input"
+                                , placeholder "Type message..."
+                                , value mainModel.currentMessage
+                                , Html.Events.onInput (App << SetCurrentMessage)
+                                ]
+                                []
+                            , button
+                                [ type_ "submit"
+                                , class "message-submit"
+                                , Html.Attributes.disabled (String.length mainModel.currentMessage == 0)
+                                ]
+                                [ text "Send" ]
+                            ]
+                        ]
                     ]
                 ]
-            , div
-                [ class "messages"
-                , Html.Attributes.id "messages"
-                ]
-                (List.map (viewMessage (Maybe.withDefault "" model.username) model.avatarLookup) model.messages)
-            , div [ class "message-box" ]
-                [ form
-                    [ Html.Events.onSubmit SendMessage
-                    ]
-                    [ input
-                        [ type_ "text"
-                        , class "message-input"
-                        , placeholder "Type message..."
-                        , value model.currentMessage
-                        , Html.Events.onInput SetCurrentMessage
-                        ]
-                        []
-                    , button
-                        [ type_ "submit"
-                        , class "message-submit"
-                        , Html.Attributes.disabled (String.length model.currentMessage == 0)
-                        ]
-                        [ text "Send" ]
-                    ]
-                ]
-            ]
-        , modal (model.username == Nothing) <| loginModalContent model
-        ]
 
 
 modal : Bool -> Html msg -> Html msg
@@ -244,7 +335,7 @@ modal isActive content =
         ]
 
 
-loginModalContent : Model -> Html Msg
+loginModalContent : InitialModel -> Html Msg
 loginModalContent model =
     div [ class "modal-card" ]
         [ header [ class "modal-card-head" ]
@@ -253,7 +344,7 @@ loginModalContent model =
             ]
         , section [ class "modal-card-body" ]
             [ form
-                [ Html.Events.onSubmit AttemptToSetUsername
+                [ Html.Events.onSubmit (Transition AttemptToLogin)
                 ]
                 [ input
                     [ type_ "text"
@@ -261,7 +352,7 @@ loginModalContent model =
                     , placeholder "Enter your Github username"
                     , class "input"
                     , Html.Attributes.autofocus True
-                    , Html.Events.onInput SetUsernameField
+                    , Html.Events.onInput (Login << SetUsernameField)
                     ]
                     []
                 , button
@@ -307,6 +398,11 @@ viewMessage username avatarLookup message =
             Nothing ->
                 text ""
         ]
+
+
+messageContainerId : String
+messageContainerId =
+    "messages"
 
 
 
