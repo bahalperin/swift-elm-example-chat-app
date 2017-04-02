@@ -1,0 +1,8 @@
+Packages
+Build
+.build
+xcuserdata
+*.xcodeproj
+Config/*.json
+.editorconfig
+elm-stuff/
