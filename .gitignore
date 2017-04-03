@@ -4,5 +4,6 @@ Build
 xcuserdata
 *.xcodeproj
 Config/*.json
+Config/secrets/*
 .editorconfig
 elm-stuff/

@@ -105,7 +105,7 @@ type LoginMsg
 
 
 type TransitionMsg
-    = LoginSuccess ( Date, String )
+    = LoginSuccess ( Date, String, List Message )
     | AttemptToLogin
 
 
@@ -226,13 +226,13 @@ transitionModel msg model =
             case msg of
                 Transition transitionMsg ->
                     case transitionMsg of
-                        LoginSuccess ( now, avatarUrl ) ->
+                        LoginSuccess ( now, avatarUrl, messages ) ->
                             ( Main
                                 { username = initialModel.usernameField
                                 , avatarLookup = Dict.fromList [ ( initialModel.usernameField, avatarUrl ) ]
                                 , now = now
                                 , currentMessage = ""
-                                , messages = []
+                                , messages = messages
                                 }
                             , joinMessage initialModel.usernameField
                                 |> WebSocket.send webSocketChatUrl
@@ -247,6 +247,12 @@ transitionModel msg model =
                                     (\avatarUrl ->
                                         Date.now
                                             |> Task.map (\now -> ( now, avatarUrl ))
+                                    )
+                                |> Task.andThen
+                                    (\( now, avatarUrl ) ->
+                                        getMessages
+                                            |> Http.toTask
+                                            |> Task.map (\messages -> ( now, avatarUrl, messages ))
                                     )
                                 |> Task.attempt
                                     (\result ->
@@ -426,7 +432,7 @@ messageDecoder : Decoder Message
 messageDecoder =
     Json.Decode.map3 Message
         (Json.Decode.field "username" Json.Decode.string)
-        (Json.Decode.field "message" Json.Decode.string)
+        (Json.Decode.field "content" Json.Decode.string)
         (Json.Decode.succeed Nothing)
 
 
@@ -436,12 +442,17 @@ joinMessage username =
 
 
 
--- COMMANDS
+-- API
 
 
 getGithubUserRequest : String -> Http.Request String
 getGithubUserRequest username =
     Http.get ("https://api.github.com/users/" ++ username) (Json.Decode.field "avatar_url" Json.Decode.string)
+
+
+getMessages : Http.Request (List Message)
+getMessages =
+    Http.get "/api/messages" (Json.Decode.list messageDecoder)
 
 
 

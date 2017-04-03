@@ -10,10 +10,9 @@ class Room {
     func send(name: String, message: String) throws {
         let message = message.truncated(to: 256)
 
-        let json = try JSON(node: [
-            "username": name,
-            "message": message
-        ])
+        var msg = Message(username: name, content: message)
+        try? msg.save()
+        let json = try msg.makeJSON()
 
         for (username, socket) in connections {
             guard username != name else {
