@@ -234,9 +234,12 @@ transitionModel msg model =
                                 , currentMessage = ""
                                 , messages = messages
                                 }
-                            , joinMessage initialModel.usernameField
-                                |> WebSocket.send webSocketChatUrl
-                                |> Cmd.map App
+                            , Cmd.map App <|
+                                Cmd.batch
+                                    [ joinMessage initialModel.usernameField
+                                        |> WebSocket.send webSocketChatUrl
+                                    , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
+                                    ]
                             )
 
                         AttemptToLogin ->
