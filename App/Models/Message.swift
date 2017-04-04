@@ -1,7 +1,7 @@
 import Vapor
 import Fluent
 
-final class Message: Model {
+struct Message: Model {
     var id: Node?
     var content: String
 	var username: String
