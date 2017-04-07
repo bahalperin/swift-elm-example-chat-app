@@ -1,3 +1,4 @@
+import Foundation
 import Vapor
 
 class Room {
@@ -11,7 +12,7 @@ class Room {
         let message = message.truncated(to: 256)
 
         var msg = Message(username: name, content: message)
-        try? msg.save()
+        try? msg.persist()
         let json = try msg.makeJSON()
 
         for (username, socket) in connections {
