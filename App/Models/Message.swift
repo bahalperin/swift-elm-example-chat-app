@@ -5,7 +5,7 @@ import Fluent
 struct Message: Model {
     var id: Node?
     var content: String
-	var username: String
+    var username: String
     var createdDate: Date?
     var exists: Bool = false
 
@@ -19,14 +19,14 @@ struct Message: Model {
         self.createdDate = createdDate
     }
 
-    init(node: Node, in context: Context) throws {
+    init(node: Node, in _: Context) throws {
         id = try node.extract("id")
         username = try node.extract("username")
         content = try node.extract("content")
 
         if let raw = node["created"]?.string {
             guard let date = dateFormatter.date(from: raw) else {
-              throw Error.dateNotSupported
+                throw Error.dateNotSupported
             }
 
             createdDate = date
@@ -37,16 +37,16 @@ struct Message: Model {
         if id == nil {
             createdDate = Date()
         }
-        try self.save()
+        try save()
     }
 
-    func makeNode(context: Context) throws -> Node {
+    func makeNode(context _: Context) throws -> Node {
         let dateString = createdDate.map { created in dateFormatter.string(from: created) }
         return try Node(node: [
             "id": id,
             "username": username,
             "content": content,
-            "created": dateString
+            "created": dateString,
         ])
     }
 

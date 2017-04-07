@@ -7,16 +7,15 @@ let drop = Droplet(workDir: workDir)
 drop.preparations.append(Message.self)
 try drop.addProvider(VaporMySQL.Provider.self)
 
-
 // MARK: Visit
 
-drop.get { req in
+drop.get { _ in
     // Design from: http://codepen.io/supah/pen/jqOBqp?utm_source=bypeople
     return try drop.view.make("index.html")
 }
 
 drop.group("api") { api in
-    api.get("messages") { request in
+    api.get("messages") { _ in
         let messages = try Message.query().all()
         let json = try messages.makeJSON()
 
@@ -28,8 +27,8 @@ drop.group("api") { api in
 
 let room = Room()
 
-drop.socket("chat") { req, ws in
-    var username: String? = nil
+drop.socket("chat") { _, ws in
+    var username: String?
 
     ws.onText = { ws, text in
         let json = try JSON(bytes: Array(text.utf8))
@@ -45,7 +44,7 @@ drop.socket("chat") { req, ws in
         }
     }
 
-    ws.onClose = { ws, _, _, _ in
+    ws.onClose = { _, _, _, _ in
         guard let u = username else {
             return
         }
