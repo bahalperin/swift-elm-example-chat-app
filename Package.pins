@@ -8,9 +8,9 @@
       "version": "1.0.0"
     },
     {
-      "package": "CMySQL",
+      "package": "CPostgreSQL",
       "reason": null,
-      "repositoryURL": "https://github.com/vapor/cmysql.git",
+      "repositoryURL": "https://github.com/vapor/cpostgresql.git",
       "version": "1.0.0"
     },
     {
@@ -44,10 +44,10 @@
       "version": "1.4.3"
     },
     {
-      "package": "FluentMySQL",
+      "package": "FluentPostgreSQL",
       "reason": null,
-      "repositoryURL": "https://github.com/vapor/mysql-driver.git",
-      "version": "1.2.0"
+      "repositoryURL": "https://github.com/vapor/postgresql-driver.git",
+      "version": "1.1.0"
     },
     {
       "package": "JSON",
@@ -74,12 +74,6 @@
       "version": "1.0.3"
     },
     {
-      "package": "MySQL",
-      "reason": null,
-      "repositoryURL": "https://github.com/vapor/mysql.git",
-      "version": "1.1.2"
-    },
-    {
       "package": "Node",
       "reason": null,
       "repositoryURL": "https://github.com/vapor/node.git",
@@ -96,6 +90,12 @@
       "reason": null,
       "repositoryURL": "https://github.com/vapor/polymorphic.git",
       "version": "1.0.1"
+    },
+    {
+      "package": "PostgreSQL",
+      "reason": null,
+      "repositoryURL": "https://github.com/vapor/postgresql.git",
+      "version": "1.1.0"
     },
     {
       "package": "Routing",
@@ -128,9 +128,9 @@
       "version": "1.5.14"
     },
     {
-      "package": "VaporMySQL",
+      "package": "VaporPostgreSQL",
       "reason": null,
-      "repositoryURL": "https://github.com/vapor/mysql-provider.git",
+      "repositoryURL": "https://github.com/vapor/postgresql-provider.git",
       "version": "1.1.1"
     }
   ],

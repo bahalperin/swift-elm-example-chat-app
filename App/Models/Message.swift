@@ -55,7 +55,7 @@ struct Message: Model {
             messages.id()
             messages.string("username")
             messages.string("content")
-            messages.datetime("created", optional: true)
+            messages.custom("created", type: "TIMESTAMP", optional: true)
         }
     }
 

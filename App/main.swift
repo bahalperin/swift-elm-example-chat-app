@@ -1,11 +1,11 @@
 import Vapor
-import VaporMySQL
+import VaporPostgreSQL
 import Foundation
 
 let drop = Droplet(workDir: workDir)
 
 drop.preparations.append(Message.self)
-try drop.addProvider(VaporMySQL.Provider.self)
+try drop.addProvider(VaporPostgreSQL.Provider.self)
 
 // MARK: Visit
 
