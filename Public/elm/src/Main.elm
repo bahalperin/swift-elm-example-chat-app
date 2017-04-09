@@ -11,6 +11,7 @@ import Html
         , span
         , text
         , p
+        , a
         , h1
         , h2
         , figure
@@ -30,6 +31,7 @@ import Html.Attributes
         , placeholder
         , src
         , value
+        , href
         )
 import Html.Events
 import Http
@@ -89,7 +91,28 @@ init =
     ( Initial
         { usernameField = ""
         }
-    , Cmd.none
+    , Http.get "/api/me" userDecoder
+        |> Http.toTask
+        |> Task.andThen
+            (\username ->
+                getMessages
+                    |> Http.toTask
+                    |> Task.map (\messages -> ( username, messages ))
+            )
+        |> Task.andThen
+            (\( username, messages ) ->
+                Date.now
+                    |> Task.map (\now -> ( username, messages, now ))
+            )
+        |> Task.attempt
+            (\result ->
+                case result of
+                    Ok payload ->
+                        Transition <| FacebookLogin payload
+
+                    Err err ->
+                        Login <| LoginFail err
+            )
     )
 
 
@@ -107,6 +130,7 @@ type LoginMsg
 type TransitionMsg
     = LoginSuccess ( Date, String, List Message )
     | AttemptToLogin
+    | FacebookLogin ( String, List Message, Date )
 
 
 type AppMsg
@@ -268,6 +292,22 @@ transitionModel msg model =
                                     )
                             )
 
+                        FacebookLogin ( username, messages, now ) ->
+                            ( Main
+                                { username = username
+                                , avatarLookup = Dict.empty
+                                , now = now
+                                , currentMessage = ""
+                                , messages = messages
+                                }
+                            , Cmd.map App <|
+                                Cmd.batch
+                                    [ joinMessage username
+                                        |> WebSocket.send webSocketChatUrl
+                                    , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
+                                    ]
+                            )
+
                 _ ->
                     ( model, Cmd.none )
 
@@ -370,6 +410,7 @@ loginModalContent model =
                     ]
                     [ text "Join Chat" ]
                 ]
+            , a [ href "/login/facebook " ] [ text "Facebook Login" ]
             ]
         , footer [ class "modal-card-foot" ]
             []
@@ -442,6 +483,11 @@ messageDecoder =
 joinMessage : String -> String
 joinMessage username =
     Json.Encode.encode 0 <| Json.Encode.object [ ( "username", Json.Encode.string username ) ]
+
+
+userDecoder : Decoder String
+userDecoder =
+    Json.Decode.field "username" Json.Decode.string
 
 
 

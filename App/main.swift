@@ -1,11 +1,20 @@
 import Vapor
 import VaporPostgreSQL
+import Auth
+import Turnstile
+import TurnstileCrypto
+import TurnstileWeb
 import Foundation
+import HTTP
+import Cookies
 
 let drop = Droplet(workDir: workDir)
 
+drop.middleware.append(AuthMiddleware(user: User.self))
 drop.preparations.append(Message.self)
+drop.preparations.append(User.self)
 try drop.addProvider(VaporPostgreSQL.Provider.self)
+
 
 // MARK: Visit
 
@@ -20,6 +29,40 @@ drop.group("api") { api in
         let json = try messages.makeJSON()
 
         return json
+    }
+
+    api.get("me") { request in
+        if let userJson = try? JSON(node: request.user().makeNode()) {
+            return userJson
+        }
+
+        return try JSON(node: [])
+    }
+}
+
+if let clientID = drop.config["facebook", "clientID"]?.string,
+    let clientSecret = drop.config["facebook", "clientSecret"]?.string {
+
+    let facebook = Facebook(clientID: clientID, clientSecret: clientSecret)
+
+    drop.get("login", "facebook") { request in
+        let state = URandom().secureToken
+        let response = Response(redirect: facebook.getLoginLink(redirectURL: "http://localhost:8080/login/facebook/consumer", state: state).absoluteString)
+        response.cookies["OAuthState"] = state
+        return response
+    }
+
+    drop.get("login", "facebook", "consumer") { request in
+        guard let state = request.cookies["OAuthState"] else {
+            return Response(redirect: "/login")
+        }
+        let account = try facebook.authenticate(authorizationCodeCallbackURL: request.uri.description, state: state) as! FacebookAccount
+        try request.auth.login(account)
+        return Response(redirect: "/")
+    }
+} else {
+    drop.get("login", "facebook") { request in
+        return "You need to configure Facebook Login first!"
     }
 }
 
