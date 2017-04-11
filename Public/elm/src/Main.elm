@@ -2,7 +2,6 @@ module Main exposing (..)
 
 import Date exposing (Date)
 import Date.Format
-import Dict exposing (Dict)
 import Dom.Scroll
 import Html
     exposing
@@ -57,19 +56,13 @@ main =
 
 
 type Model
-    = Initial InitialModel
+    = Initial
     | Main MainModel
-
-
-type alias InitialModel =
-    { usernameField : String
-    }
 
 
 type alias MainModel =
     { now : Date
     , username : String
-    , avatarLookup : Dict String String
     , messages : List Message
     , currentMessage : String
     }
@@ -89,8 +82,6 @@ type alias Message =
 init : ( Model, Cmd Msg )
 init =
     ( Initial
-        { usernameField = ""
-        }
     , Http.get "/api/me" userDecoder
         |> Http.toTask
         |> Task.andThen
@@ -108,33 +99,16 @@ init =
             (\result ->
                 case result of
                     Ok payload ->
-                        Transition <| FacebookLogin payload
+                        FacebookLogin payload
 
                     Err err ->
-                        Login <| LoginFail err
+                        NoOp
             )
     )
 
 
 type Msg
-    = Login LoginMsg
-    | App AppMsg
-    | Transition TransitionMsg
-
-
-type LoginMsg
-    = SetUsernameField String
-    | LoginFail Http.Error
-
-
-type TransitionMsg
-    = LoginSuccess ( Date, String, List Message )
-    | AttemptToLogin
-    | FacebookLogin ( String, List Message, Date )
-
-
-type AppMsg
-    = AddAvatarResponse String (Result Http.Error String)
+    = FacebookLogin ( String, List Message, Date )
     | SetCurrentMessage String
     | ReceiveMessage String
     | SendMessage
@@ -146,173 +120,74 @@ type AppMsg
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
-        Initial _ ->
+        Initial ->
             Sub.none
 
         Main _ ->
-            Sub.map App <|
-                Sub.batch
-                    [ WebSocket.listen webSocketChatUrl ReceiveMessage
-                    , Time.every Time.second (always GetCurrentTime)
-                    ]
+            Sub.batch
+                [ WebSocket.listen webSocketChatUrl ReceiveMessage
+                , Time.every Time.second (always GetCurrentTime)
+                ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        Transition _ ->
-            transitionModel msg model
+    case model of
+        Main mainModel ->
+            case msg of
+                SetCurrentMessage message ->
+                    ( Main { mainModel | currentMessage = message }, Cmd.none )
 
-        Login loginMsg ->
-            case model of
-                Initial initialModel ->
-                    updateInitialModel loginMsg initialModel
-                        |> (\( newModel, newCmd ) -> ( Initial newModel, Cmd.map Login newCmd ))
+                ReceiveMessage messageJson ->
+                    case decodeMessage messageJson of
+                        Ok message ->
+                            ( Main { mainModel | messages = List.append mainModel.messages [ { message | created = Just mainModel.now } ] }
+                            , Cmd.batch
+                                [ Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
+                                ]
+                            )
 
-                _ ->
-                    ( model, Cmd.none )
+                        Err err ->
+                            ( model, Cmd.none )
 
-        App appMsg ->
-            case model of
-                Main mainModel ->
-                    updateMainModel appMsg mainModel
-                        |> (\( newModel, newCmd ) -> ( Main newModel, Cmd.map App newCmd ))
-
-                _ ->
-                    ( model, Cmd.none )
-
-
-updateInitialModel : LoginMsg -> InitialModel -> ( InitialModel, Cmd LoginMsg )
-updateInitialModel msg model =
-    case msg of
-        SetUsernameField username ->
-            ( { model | usernameField = username }, Cmd.none )
-
-        LoginFail err ->
-            ( model, Cmd.none )
-
-
-updateMainModel : AppMsg -> MainModel -> ( MainModel, Cmd AppMsg )
-updateMainModel msg model =
-    case msg of
-        AddAvatarResponse username (Ok avatarUrl) ->
-            ( { model | avatarLookup = Dict.insert username avatarUrl model.avatarLookup }
-            , Cmd.none
-            )
-
-        AddAvatarResponse username (Err _) ->
-            ( model, Cmd.none )
-
-        SetCurrentMessage message ->
-            ( { model | currentMessage = message }, Cmd.none )
-
-        ReceiveMessage messageJson ->
-            case decodeMessage messageJson of
-                Ok message ->
-                    ( { model | messages = List.append model.messages [ { message | created = Just model.now } ] }
+                SendMessage ->
+                    ( Main { mainModel | currentMessage = "", messages = List.append mainModel.messages [ { username = mainModel.username, content = mainModel.currentMessage, created = Just mainModel.now } ] }
                     , Cmd.batch
-                        [ Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
-                        , case Dict.get message.username model.avatarLookup of
-                            Just _ ->
-                                Cmd.none
-
-                            Nothing ->
-                                getGithubUserRequest message.username
-                                    |> Http.send (AddAvatarResponse message.username)
+                        [ WebSocket.send webSocketChatUrl (encodeMessage { username = mainModel.username, content = mainModel.currentMessage, created = Just mainModel.now })
+                        , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
                         ]
                     )
 
-                Err err ->
+                GetCurrentTime ->
+                    ( model, Task.perform SetCurrentTime Date.now )
+
+                SetCurrentTime time ->
+                    ( Main { mainModel | now = time }, Cmd.none )
+
+                FacebookLogin ( username, messages, now ) ->
                     ( model, Cmd.none )
 
-        SendMessage ->
-            ( { model | currentMessage = "", messages = List.append model.messages [ { username = model.username, content = model.currentMessage, created = Just model.now } ] }
-            , Cmd.batch
-                [ WebSocket.send webSocketChatUrl (encodeMessage { username = model.username, content = model.currentMessage, created = Just model.now })
-                , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
-                ]
-            )
+                NoOp ->
+                    ( model, Cmd.none )
 
-        GetCurrentTime ->
-            ( model, Task.perform SetCurrentTime Date.now )
-
-        SetCurrentTime time ->
-            ( { model | now = time }, Cmd.none )
-
-        NoOp ->
-            ( model, Cmd.none )
-
-
-transitionModel : Msg -> Model -> ( Model, Cmd Msg )
-transitionModel msg model =
-    case model of
-        Initial initialModel ->
+        Initial ->
             case msg of
-                Transition transitionMsg ->
-                    case transitionMsg of
-                        LoginSuccess ( now, avatarUrl, messages ) ->
-                            ( Main
-                                { username = initialModel.usernameField
-                                , avatarLookup = Dict.fromList [ ( initialModel.usernameField, avatarUrl ) ]
-                                , now = now
-                                , currentMessage = ""
-                                , messages = messages
-                                }
-                            , Cmd.map App <|
-                                Cmd.batch
-                                    [ joinMessage initialModel.usernameField
-                                        |> WebSocket.send webSocketChatUrl
-                                    , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
-                                    ]
-                            )
-
-                        AttemptToLogin ->
-                            ( Initial initialModel
-                            , getGithubUserRequest initialModel.usernameField
-                                |> Http.toTask
-                                |> Task.andThen
-                                    (\avatarUrl ->
-                                        Date.now
-                                            |> Task.map (\now -> ( now, avatarUrl ))
-                                    )
-                                |> Task.andThen
-                                    (\( now, avatarUrl ) ->
-                                        getMessages
-                                            |> Http.toTask
-                                            |> Task.map (\messages -> ( now, avatarUrl, messages ))
-                                    )
-                                |> Task.attempt
-                                    (\result ->
-                                        case result of
-                                            Ok payload ->
-                                                Transition <| LoginSuccess payload
-
-                                            Err err ->
-                                                Login <| LoginFail err
-                                    )
-                            )
-
-                        FacebookLogin ( username, messages, now ) ->
-                            ( Main
-                                { username = username
-                                , avatarLookup = Dict.empty
-                                , now = now
-                                , currentMessage = ""
-                                , messages = messages
-                                }
-                            , Cmd.map App <|
-                                Cmd.batch
-                                    [ joinMessage username
-                                        |> WebSocket.send webSocketChatUrl
-                                    , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
-                                    ]
-                            )
+                FacebookLogin ( username, messages, now ) ->
+                    ( Main
+                        { username = username
+                        , now = now
+                        , currentMessage = ""
+                        , messages = messages
+                        }
+                    , Cmd.batch
+                        [ joinMessage username
+                            |> WebSocket.send webSocketChatUrl
+                        , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
+                        ]
+                    )
 
                 _ ->
                     ( model, Cmd.none )
-
-        Main _ ->
-            ( model, Cmd.none )
 
 
 
@@ -322,9 +197,9 @@ transitionModel msg model =
 view : Model -> Html Msg
 view model =
     case model of
-        Initial initialModel ->
+        Initial ->
             div [ class "app-container" ]
-                [ modal True <| loginModalContent initialModel
+                [ modal True <| loginModalContent
                 ]
 
         Main mainModel ->
@@ -346,17 +221,17 @@ view model =
                         [ class "messages"
                         , Html.Attributes.id messageContainerId
                         ]
-                        (List.map (viewMessage mainModel.username mainModel.avatarLookup) mainModel.messages)
+                        (List.map (viewMessage mainModel.username) mainModel.messages)
                     , div [ class "message-box" ]
                         [ form
-                            [ Html.Events.onSubmit (App SendMessage)
+                            [ Html.Events.onSubmit SendMessage
                             ]
                             [ input
                                 [ type_ "text"
                                 , class "message-input"
                                 , placeholder "Type message..."
                                 , value mainModel.currentMessage
-                                , Html.Events.onInput (App << SetCurrentMessage)
+                                , Html.Events.onInput SetCurrentMessage
                                 ]
                                 []
                             , button
@@ -384,41 +259,23 @@ modal isActive content =
         ]
 
 
-loginModalContent : InitialModel -> Html Msg
-loginModalContent model =
+loginModalContent : Html Msg
+loginModalContent =
     div [ class "modal-card" ]
         [ header [ class "modal-card-head" ]
             [ p [ class "modal-card-title" ]
                 [ text "Login" ]
             ]
         , section [ class "modal-card-body" ]
-            [ form
-                [ Html.Events.onSubmit (Transition AttemptToLogin)
-                ]
-                [ input
-                    [ type_ "text"
-                    , value model.usernameField
-                    , placeholder "Enter your Github username"
-                    , class "input"
-                    , Html.Attributes.autofocus True
-                    , Html.Events.onInput (Login << SetUsernameField)
-                    ]
-                    []
-                , button
-                    [ type_ "submit"
-                    , class "button"
-                    ]
-                    [ text "Join Chat" ]
-                ]
-            , a [ href "/login/facebook " ] [ text "Facebook Login" ]
+            [ a [ href "/login/facebook " ] [ text "Facebook Login" ]
             ]
         , footer [ class "modal-card-foot" ]
             []
         ]
 
 
-viewMessage : String -> Dict String String -> Message -> Html Msg
-viewMessage username avatarLookup message =
+viewMessage : String -> Message -> Html Msg
+viewMessage username message =
     div
         [ classList
             [ ( "message", True )
@@ -428,12 +285,7 @@ viewMessage username avatarLookup message =
         ]
         [ img
             [ class "avatar"
-            , case Dict.get message.username avatarLookup of
-                Just avatarUrl ->
-                    src avatarUrl
-
-                Nothing ->
-                    src "https://avatars3.githubusercontent.com/u/17364220?v=3&amp;s=20"
+            , src "https://avatars3.githubusercontent.com/u/17364220?v=3&amp;s=20"
             ]
             []
         , span [ class "text" ]
@@ -492,11 +344,6 @@ userDecoder =
 
 
 -- API
-
-
-getGithubUserRequest : String -> Http.Request String
-getGithubUserRequest username =
-    Http.get ("https://api.github.com/users/" ++ username) (Json.Decode.field "avatar_url" Json.Decode.string)
 
 
 getMessages : Http.Request (List Message)

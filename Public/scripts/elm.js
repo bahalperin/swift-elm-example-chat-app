@@ -10248,12 +10248,6 @@ var _mgold$elm_date_format$Date_Format$format = F2(
 var _mgold$elm_date_format$Date_Format$formatISO8601 = _mgold$elm_date_format$Date_Format$format('%Y-%m-%dT%H:%M:%SZ');
 
 var _user$project$Main$webSocketChatUrl = 'ws://localhost:8080/chat';
-var _user$project$Main$getGithubUserRequest = function (username) {
-	return A2(
-		_elm_lang$http$Http$get,
-		A2(_elm_lang$core$Basics_ops['++'], 'https://api.github.com/users/', username),
-		A2(_elm_lang$core$Json_Decode$field, 'avatar_url', _elm_lang$core$Json_Decode$string));
-};
 var _user$project$Main$userDecoder = A2(_elm_lang$core$Json_Decode$field, 'username', _elm_lang$core$Json_Decode$string);
 var _user$project$Main$joinMessage = function (username) {
 	return A2(
@@ -10286,8 +10280,8 @@ var _user$project$Main$encodeMessage = function (message) {
 			}));
 };
 var _user$project$Main$messageContainerId = 'messages';
-var _user$project$Main$viewMessage = F3(
-	function (username, avatarLookup, message) {
+var _user$project$Main$viewMessage = F2(
+	function (username, message) {
 		return A2(
 			_elm_lang$html$Html$div,
 			{
@@ -10321,14 +10315,7 @@ var _user$project$Main$viewMessage = F3(
 						_0: _elm_lang$html$Html_Attributes$class('avatar'),
 						_1: {
 							ctor: '::',
-							_0: function () {
-								var _p0 = A2(_elm_lang$core$Dict$get, message.username, avatarLookup);
-								if (_p0.ctor === 'Just') {
-									return _elm_lang$html$Html_Attributes$src(_p0._0);
-								} else {
-									return _elm_lang$html$Html_Attributes$src('https://avatars3.githubusercontent.com/u/17364220?v=3&amp;s=20');
-								}
-							}(),
+							_0: _elm_lang$html$Html_Attributes$src('https://avatars3.githubusercontent.com/u/17364220?v=3&amp;s=20'),
 							_1: {ctor: '[]'}
 						}
 					},
@@ -10354,8 +10341,8 @@ var _user$project$Main$viewMessage = F3(
 					_1: {
 						ctor: '::',
 						_0: function () {
-							var _p1 = message.created;
-							if (_p1.ctor === 'Just') {
+							var _p0 = message.created;
+							if (_p0.ctor === 'Just') {
 								return A2(
 									_elm_lang$html$Html$span,
 									{
@@ -10366,7 +10353,7 @@ var _user$project$Main$viewMessage = F3(
 									{
 										ctor: '::',
 										_0: _elm_lang$html$Html$text(
-											A2(_mgold$elm_date_format$Date_Format$format, '%H:%M', _p1._0)),
+											A2(_mgold$elm_date_format$Date_Format$format, '%H:%M', _p0._0)),
 										_1: {ctor: '[]'}
 									});
 							} else {
@@ -10377,6 +10364,77 @@ var _user$project$Main$viewMessage = F3(
 					}
 				}
 			});
+	});
+var _user$project$Main$loginModalContent = A2(
+	_elm_lang$html$Html$div,
+	{
+		ctor: '::',
+		_0: _elm_lang$html$Html_Attributes$class('modal-card'),
+		_1: {ctor: '[]'}
+	},
+	{
+		ctor: '::',
+		_0: A2(
+			_elm_lang$html$Html$header,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$class('modal-card-head'),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$p,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$class('modal-card-title'),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('Login'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}),
+		_1: {
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$section,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$class('modal-card-body'),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$a,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$href('/login/facebook '),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html$text('Facebook Login'),
+							_1: {ctor: '[]'}
+						}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$footer,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$class('modal-card-foot'),
+						_1: {ctor: '[]'}
+					},
+					{ctor: '[]'}),
+				_1: {ctor: '[]'}
+			}
+		}
 	});
 var _user$project$Main$modal = F2(
 	function (isActive, content) {
@@ -10413,27 +10471,9 @@ var _user$project$Main$modal = F2(
 				}
 			});
 	});
-var _user$project$Main$updateInitialModel = F2(
-	function (msg, model) {
-		var _p2 = msg;
-		if (_p2.ctor === 'SetUsernameField') {
-			return {
-				ctor: '_Tuple2',
-				_0: _elm_lang$core$Native_Utils.update(
-					model,
-					{usernameField: _p2._0}),
-				_1: _elm_lang$core$Platform_Cmd$none
-			};
-		} else {
-			return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-		}
-	});
-var _user$project$Main$InitialModel = function (a) {
-	return {usernameField: a};
-};
-var _user$project$Main$MainModel = F5(
-	function (a, b, c, d, e) {
-		return {now: a, username: b, avatarLookup: c, messages: d, currentMessage: e};
+var _user$project$Main$MainModel = F4(
+	function (a, b, c, d) {
+		return {now: a, username: b, messages: c, currentMessage: d};
 	});
 var _user$project$Main$Message = F3(
 	function (a, b, c) {
@@ -10455,371 +10495,192 @@ var _user$project$Main$getMessages = A2(
 var _user$project$Main$Main = function (a) {
 	return {ctor: 'Main', _0: a};
 };
-var _user$project$Main$Initial = function (a) {
-	return {ctor: 'Initial', _0: a};
-};
-var _user$project$Main$Transition = function (a) {
-	return {ctor: 'Transition', _0: a};
-};
-var _user$project$Main$App = function (a) {
-	return {ctor: 'App', _0: a};
-};
-var _user$project$Main$Login = function (a) {
-	return {ctor: 'Login', _0: a};
-};
-var _user$project$Main$LoginFail = function (a) {
-	return {ctor: 'LoginFail', _0: a};
-};
-var _user$project$Main$SetUsernameField = function (a) {
-	return {ctor: 'SetUsernameField', _0: a};
-};
-var _user$project$Main$FacebookLogin = function (a) {
-	return {ctor: 'FacebookLogin', _0: a};
-};
-var _user$project$Main$init = {
-	ctor: '_Tuple2',
-	_0: _user$project$Main$Initial(
-		{usernameField: ''}),
-	_1: A2(
-		_elm_lang$core$Task$attempt,
-		function (result) {
-			var _p3 = result;
-			if (_p3.ctor === 'Ok') {
-				return _user$project$Main$Transition(
-					_user$project$Main$FacebookLogin(_p3._0));
-			} else {
-				return _user$project$Main$Login(
-					_user$project$Main$LoginFail(_p3._0));
-			}
-		},
-		A2(
-			_elm_lang$core$Task$andThen,
-			function (_p4) {
-				var _p5 = _p4;
-				return A2(
-					_elm_lang$core$Task$map,
-					function (now) {
-						return {ctor: '_Tuple3', _0: _p5._0, _1: _p5._1, _2: now};
-					},
-					_elm_lang$core$Date$now);
-			},
-			A2(
-				_elm_lang$core$Task$andThen,
-				function (username) {
-					return A2(
-						_elm_lang$core$Task$map,
-						function (messages) {
-							return {ctor: '_Tuple2', _0: username, _1: messages};
-						},
-						_elm_lang$http$Http$toTask(_user$project$Main$getMessages));
-				},
-				_elm_lang$http$Http$toTask(
-					A2(_elm_lang$http$Http$get, '/api/me', _user$project$Main$userDecoder)))))
-};
-var _user$project$Main$AttemptToLogin = {ctor: 'AttemptToLogin'};
-var _user$project$Main$loginModalContent = function (model) {
-	return A2(
-		_elm_lang$html$Html$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$class('modal-card'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$header,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('modal-card-head'),
-					_1: {ctor: '[]'}
-				},
-				{
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$p,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('modal-card-title'),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('Login'),
-							_1: {ctor: '[]'}
-						}),
-					_1: {ctor: '[]'}
-				}),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$section,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('modal-card-body'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$form,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Events$onSubmit(
-									_user$project$Main$Transition(_user$project$Main$AttemptToLogin)),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$input,
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$type_('text'),
-										_1: {
-											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$value(model.usernameField),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$placeholder('Enter your Github username'),
-												_1: {
-													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$class('input'),
-													_1: {
-														ctor: '::',
-														_0: _elm_lang$html$Html_Attributes$autofocus(true),
-														_1: {
-															ctor: '::',
-															_0: _elm_lang$html$Html_Events$onInput(
-																function (_p6) {
-																	return _user$project$Main$Login(
-																		_user$project$Main$SetUsernameField(_p6));
-																}),
-															_1: {ctor: '[]'}
-														}
-													}
-												}
-											}
-										}
-									},
-									{ctor: '[]'}),
-								_1: {
-									ctor: '::',
-									_0: A2(
-										_elm_lang$html$Html$button,
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$type_('submit'),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$class('button'),
-												_1: {ctor: '[]'}
-											}
-										},
-										{
-											ctor: '::',
-											_0: _elm_lang$html$Html$text('Join Chat'),
-											_1: {ctor: '[]'}
-										}),
-									_1: {ctor: '[]'}
-								}
-							}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$a,
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$href('/login/facebook '),
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html$text('Facebook Login'),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}
-					}),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$footer,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('modal-card-foot'),
-							_1: {ctor: '[]'}
-						},
-						{ctor: '[]'}),
-					_1: {ctor: '[]'}
-				}
-			}
-		});
-};
-var _user$project$Main$LoginSuccess = function (a) {
-	return {ctor: 'LoginSuccess', _0: a};
-};
+var _user$project$Main$Initial = {ctor: 'Initial'};
 var _user$project$Main$NoOp = {ctor: 'NoOp'};
-var _user$project$Main$transitionModel = F2(
-	function (msg, model) {
-		var _p7 = model;
-		if (_p7.ctor === 'Initial') {
-			var _p16 = _p7._0;
-			var _p8 = msg;
-			if (_p8.ctor === 'Transition') {
-				var _p9 = _p8._0;
-				switch (_p9.ctor) {
-					case 'LoginSuccess':
-						return {
-							ctor: '_Tuple2',
-							_0: _user$project$Main$Main(
-								{
-									username: _p16.usernameField,
-									avatarLookup: _elm_lang$core$Dict$fromList(
-										{
-											ctor: '::',
-											_0: {ctor: '_Tuple2', _0: _p16.usernameField, _1: _p9._0._1},
-											_1: {ctor: '[]'}
-										}),
-									now: _p9._0._0,
-									currentMessage: '',
-									messages: _p9._0._2
-								}),
-							_1: A2(
-								_elm_lang$core$Platform_Cmd$map,
-								_user$project$Main$App,
-								_elm_lang$core$Platform_Cmd$batch(
-									{
-										ctor: '::',
-										_0: A2(
-											_elm_lang$websocket$WebSocket$send,
-											_user$project$Main$webSocketChatUrl,
-											_user$project$Main$joinMessage(_p16.usernameField)),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$core$Task$attempt,
-												function (_p10) {
-													return _user$project$Main$NoOp;
-												},
-												_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
-											_1: {ctor: '[]'}
-										}
-									}))
-						};
-					case 'AttemptToLogin':
-						return {
-							ctor: '_Tuple2',
-							_0: _user$project$Main$Initial(_p16),
-							_1: A2(
-								_elm_lang$core$Task$attempt,
-								function (result) {
-									var _p11 = result;
-									if (_p11.ctor === 'Ok') {
-										return _user$project$Main$Transition(
-											_user$project$Main$LoginSuccess(_p11._0));
-									} else {
-										return _user$project$Main$Login(
-											_user$project$Main$LoginFail(_p11._0));
-									}
-								},
-								A2(
-									_elm_lang$core$Task$andThen,
-									function (_p12) {
-										var _p13 = _p12;
-										return A2(
-											_elm_lang$core$Task$map,
-											function (messages) {
-												return {ctor: '_Tuple3', _0: _p13._0, _1: _p13._1, _2: messages};
-											},
-											_elm_lang$http$Http$toTask(_user$project$Main$getMessages));
-									},
-									A2(
-										_elm_lang$core$Task$andThen,
-										function (avatarUrl) {
-											return A2(
-												_elm_lang$core$Task$map,
-												function (now) {
-													return {ctor: '_Tuple2', _0: now, _1: avatarUrl};
-												},
-												_elm_lang$core$Date$now);
-										},
-										_elm_lang$http$Http$toTask(
-											_user$project$Main$getGithubUserRequest(_p16.usernameField)))))
-						};
-					default:
-						var _p15 = _p9._0._0;
-						return {
-							ctor: '_Tuple2',
-							_0: _user$project$Main$Main(
-								{username: _p15, avatarLookup: _elm_lang$core$Dict$empty, now: _p9._0._2, currentMessage: '', messages: _p9._0._1}),
-							_1: A2(
-								_elm_lang$core$Platform_Cmd$map,
-								_user$project$Main$App,
-								_elm_lang$core$Platform_Cmd$batch(
-									{
-										ctor: '::',
-										_0: A2(
-											_elm_lang$websocket$WebSocket$send,
-											_user$project$Main$webSocketChatUrl,
-											_user$project$Main$joinMessage(_p15)),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$core$Task$attempt,
-												function (_p14) {
-													return _user$project$Main$NoOp;
-												},
-												_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
-											_1: {ctor: '[]'}
-										}
-									}))
-						};
-				}
-			} else {
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-			}
-		} else {
-			return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-		}
-	});
 var _user$project$Main$SetCurrentTime = function (a) {
 	return {ctor: 'SetCurrentTime', _0: a};
 };
+var _user$project$Main$update = F2(
+	function (msg, model) {
+		var _p1 = model;
+		if (_p1.ctor === 'Main') {
+			var _p6 = _p1._0;
+			var _p2 = msg;
+			switch (_p2.ctor) {
+				case 'SetCurrentMessage':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$Main$Main(
+							_elm_lang$core$Native_Utils.update(
+								_p6,
+								{currentMessage: _p2._0})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'ReceiveMessage':
+					var _p3 = _user$project$Main$decodeMessage(_p2._0);
+					if (_p3.ctor === 'Ok') {
+						return {
+							ctor: '_Tuple2',
+							_0: _user$project$Main$Main(
+								_elm_lang$core$Native_Utils.update(
+									_p6,
+									{
+										messages: A2(
+											_elm_lang$core$List$append,
+											_p6.messages,
+											{
+												ctor: '::',
+												_0: _elm_lang$core$Native_Utils.update(
+													_p3._0,
+													{
+														created: _elm_lang$core$Maybe$Just(_p6.now)
+													}),
+												_1: {ctor: '[]'}
+											})
+									})),
+							_1: _elm_lang$core$Platform_Cmd$batch(
+								{
+									ctor: '::',
+									_0: A2(
+										_elm_lang$core$Task$attempt,
+										function (_p4) {
+											return _user$project$Main$NoOp;
+										},
+										_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
+									_1: {ctor: '[]'}
+								})
+						};
+					} else {
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					}
+				case 'SendMessage':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$Main$Main(
+							_elm_lang$core$Native_Utils.update(
+								_p6,
+								{
+									currentMessage: '',
+									messages: A2(
+										_elm_lang$core$List$append,
+										_p6.messages,
+										{
+											ctor: '::',
+											_0: {
+												username: _p6.username,
+												content: _p6.currentMessage,
+												created: _elm_lang$core$Maybe$Just(_p6.now)
+											},
+											_1: {ctor: '[]'}
+										})
+								})),
+						_1: _elm_lang$core$Platform_Cmd$batch(
+							{
+								ctor: '::',
+								_0: A2(
+									_elm_lang$websocket$WebSocket$send,
+									_user$project$Main$webSocketChatUrl,
+									_user$project$Main$encodeMessage(
+										{
+											username: _p6.username,
+											content: _p6.currentMessage,
+											created: _elm_lang$core$Maybe$Just(_p6.now)
+										})),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$core$Task$attempt,
+										function (_p5) {
+											return _user$project$Main$NoOp;
+										},
+										_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
+									_1: {ctor: '[]'}
+								}
+							})
+					};
+				case 'GetCurrentTime':
+					return {
+						ctor: '_Tuple2',
+						_0: model,
+						_1: A2(_elm_lang$core$Task$perform, _user$project$Main$SetCurrentTime, _elm_lang$core$Date$now)
+					};
+				case 'SetCurrentTime':
+					return {
+						ctor: '_Tuple2',
+						_0: _user$project$Main$Main(
+							_elm_lang$core$Native_Utils.update(
+								_p6,
+								{now: _p2._0})),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				case 'FacebookLogin':
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				default:
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			}
+		} else {
+			var _p7 = msg;
+			if ((_p7.ctor === 'FacebookLogin') && (_p7._0.ctor === '_Tuple3')) {
+				var _p9 = _p7._0._0;
+				return {
+					ctor: '_Tuple2',
+					_0: _user$project$Main$Main(
+						{username: _p9, now: _p7._0._2, currentMessage: '', messages: _p7._0._1}),
+					_1: _elm_lang$core$Platform_Cmd$batch(
+						{
+							ctor: '::',
+							_0: A2(
+								_elm_lang$websocket$WebSocket$send,
+								_user$project$Main$webSocketChatUrl,
+								_user$project$Main$joinMessage(_p9)),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$core$Task$attempt,
+									function (_p8) {
+										return _user$project$Main$NoOp;
+									},
+									_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
+								_1: {ctor: '[]'}
+							}
+						})
+				};
+			} else {
+				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			}
+		}
+	});
 var _user$project$Main$GetCurrentTime = {ctor: 'GetCurrentTime'};
 var _user$project$Main$SendMessage = {ctor: 'SendMessage'};
 var _user$project$Main$ReceiveMessage = function (a) {
 	return {ctor: 'ReceiveMessage', _0: a};
 };
 var _user$project$Main$subscriptions = function (model) {
-	var _p17 = model;
-	if (_p17.ctor === 'Initial') {
+	var _p10 = model;
+	if (_p10.ctor === 'Initial') {
 		return _elm_lang$core$Platform_Sub$none;
 	} else {
-		return A2(
-			_elm_lang$core$Platform_Sub$map,
-			_user$project$Main$App,
-			_elm_lang$core$Platform_Sub$batch(
-				{
+		return _elm_lang$core$Platform_Sub$batch(
+			{
+				ctor: '::',
+				_0: A2(_elm_lang$websocket$WebSocket$listen, _user$project$Main$webSocketChatUrl, _user$project$Main$ReceiveMessage),
+				_1: {
 					ctor: '::',
-					_0: A2(_elm_lang$websocket$WebSocket$listen, _user$project$Main$webSocketChatUrl, _user$project$Main$ReceiveMessage),
-					_1: {
-						ctor: '::',
-						_0: A2(
-							_elm_lang$core$Time$every,
-							_elm_lang$core$Time$second,
-							_elm_lang$core$Basics$always(_user$project$Main$GetCurrentTime)),
-						_1: {ctor: '[]'}
-					}
-				}));
+					_0: A2(
+						_elm_lang$core$Time$every,
+						_elm_lang$core$Time$second,
+						_elm_lang$core$Basics$always(_user$project$Main$GetCurrentTime)),
+					_1: {ctor: '[]'}
+				}
+			});
 	}
 };
 var _user$project$Main$SetCurrentMessage = function (a) {
 	return {ctor: 'SetCurrentMessage', _0: a};
 };
 var _user$project$Main$view = function (model) {
-	var _p18 = model;
-	if (_p18.ctor === 'Initial') {
+	var _p11 = model;
+	if (_p11.ctor === 'Initial') {
 		return A2(
 			_elm_lang$html$Html$div,
 			{
@@ -10829,14 +10690,11 @@ var _user$project$Main$view = function (model) {
 			},
 			{
 				ctor: '::',
-				_0: A2(
-					_user$project$Main$modal,
-					true,
-					_user$project$Main$loginModalContent(_p18._0)),
+				_0: A2(_user$project$Main$modal, true, _user$project$Main$loginModalContent),
 				_1: {ctor: '[]'}
 			});
 	} else {
-		var _p20 = _p18._0;
+		var _p12 = _p11._0;
 		return A2(
 			_elm_lang$html$Html$div,
 			{
@@ -10922,8 +10780,8 @@ var _user$project$Main$view = function (model) {
 								},
 								A2(
 									_elm_lang$core$List$map,
-									A2(_user$project$Main$viewMessage, _p20.username, _p20.avatarLookup),
-									_p20.messages)),
+									_user$project$Main$viewMessage(_p12.username),
+									_p12.messages)),
 							_1: {
 								ctor: '::',
 								_0: A2(
@@ -10939,8 +10797,7 @@ var _user$project$Main$view = function (model) {
 											_elm_lang$html$Html$form,
 											{
 												ctor: '::',
-												_0: _elm_lang$html$Html_Events$onSubmit(
-													_user$project$Main$App(_user$project$Main$SendMessage)),
+												_0: _elm_lang$html$Html_Events$onSubmit(_user$project$Main$SendMessage),
 												_1: {ctor: '[]'}
 											},
 											{
@@ -10958,14 +10815,10 @@ var _user$project$Main$view = function (model) {
 																_0: _elm_lang$html$Html_Attributes$placeholder('Type message...'),
 																_1: {
 																	ctor: '::',
-																	_0: _elm_lang$html$Html_Attributes$value(_p20.currentMessage),
+																	_0: _elm_lang$html$Html_Attributes$value(_p12.currentMessage),
 																	_1: {
 																		ctor: '::',
-																		_0: _elm_lang$html$Html_Events$onInput(
-																			function (_p19) {
-																				return _user$project$Main$App(
-																					_user$project$Main$SetCurrentMessage(_p19));
-																			}),
+																		_0: _elm_lang$html$Html_Events$onInput(_user$project$Main$SetCurrentMessage),
 																		_1: {ctor: '[]'}
 																	}
 																}
@@ -10987,7 +10840,7 @@ var _user$project$Main$view = function (model) {
 																	ctor: '::',
 																	_0: _elm_lang$html$Html_Attributes$disabled(
 																		_elm_lang$core$Native_Utils.eq(
-																			_elm_lang$core$String$length(_p20.currentMessage),
+																			_elm_lang$core$String$length(_p12.currentMessage),
 																			0)),
 																	_1: {ctor: '[]'}
 																}
@@ -11011,187 +10864,46 @@ var _user$project$Main$view = function (model) {
 			});
 	}
 };
-var _user$project$Main$AddAvatarResponse = F2(
-	function (a, b) {
-		return {ctor: 'AddAvatarResponse', _0: a, _1: b};
-	});
-var _user$project$Main$updateMainModel = F2(
-	function (msg, model) {
-		var _p21 = msg;
-		switch (_p21.ctor) {
-			case 'AddAvatarResponse':
-				if (_p21._1.ctor === 'Ok') {
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{
-								avatarLookup: A3(_elm_lang$core$Dict$insert, _p21._0, _p21._1._0, model.avatarLookup)
-							}),
-						_1: _elm_lang$core$Platform_Cmd$none
-					};
-				} else {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-			case 'SetCurrentMessage':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{currentMessage: _p21._0}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			case 'ReceiveMessage':
-				var _p22 = _user$project$Main$decodeMessage(_p21._0);
-				if (_p22.ctor === 'Ok') {
-					var _p25 = _p22._0;
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{
-								messages: A2(
-									_elm_lang$core$List$append,
-									model.messages,
-									{
-										ctor: '::',
-										_0: _elm_lang$core$Native_Utils.update(
-											_p25,
-											{
-												created: _elm_lang$core$Maybe$Just(model.now)
-											}),
-										_1: {ctor: '[]'}
-									})
-							}),
-						_1: _elm_lang$core$Platform_Cmd$batch(
-							{
-								ctor: '::',
-								_0: A2(
-									_elm_lang$core$Task$attempt,
-									function (_p23) {
-										return _user$project$Main$NoOp;
-									},
-									_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
-								_1: {
-									ctor: '::',
-									_0: function () {
-										var _p24 = A2(_elm_lang$core$Dict$get, _p25.username, model.avatarLookup);
-										if (_p24.ctor === 'Just') {
-											return _elm_lang$core$Platform_Cmd$none;
-										} else {
-											return A2(
-												_elm_lang$http$Http$send,
-												_user$project$Main$AddAvatarResponse(_p25.username),
-												_user$project$Main$getGithubUserRequest(_p25.username));
-										}
-									}(),
-									_1: {ctor: '[]'}
-								}
-							})
-					};
-				} else {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-			case 'SendMessage':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{
-							currentMessage: '',
-							messages: A2(
-								_elm_lang$core$List$append,
-								model.messages,
-								{
-									ctor: '::',
-									_0: {
-										username: model.username,
-										content: model.currentMessage,
-										created: _elm_lang$core$Maybe$Just(model.now)
-									},
-									_1: {ctor: '[]'}
-								})
-						}),
-					_1: _elm_lang$core$Platform_Cmd$batch(
-						{
-							ctor: '::',
-							_0: A2(
-								_elm_lang$websocket$WebSocket$send,
-								_user$project$Main$webSocketChatUrl,
-								_user$project$Main$encodeMessage(
-									{
-										username: model.username,
-										content: model.currentMessage,
-										created: _elm_lang$core$Maybe$Just(model.now)
-									})),
-							_1: {
-								ctor: '::',
-								_0: A2(
-									_elm_lang$core$Task$attempt,
-									function (_p26) {
-										return _user$project$Main$NoOp;
-									},
-									_elm_lang$dom$Dom_Scroll$toBottom(_user$project$Main$messageContainerId)),
-								_1: {ctor: '[]'}
-							}
-						})
-				};
-			case 'GetCurrentTime':
-				return {
-					ctor: '_Tuple2',
-					_0: model,
-					_1: A2(_elm_lang$core$Task$perform, _user$project$Main$SetCurrentTime, _elm_lang$core$Date$now)
-				};
-			case 'SetCurrentTime':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{now: _p21._0}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
-			default:
-				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-		}
-	});
-var _user$project$Main$update = F2(
-	function (msg, model) {
-		var _p27 = msg;
-		switch (_p27.ctor) {
-			case 'Transition':
-				return A2(_user$project$Main$transitionModel, msg, model);
-			case 'Login':
-				var _p28 = model;
-				if (_p28.ctor === 'Initial') {
-					return function (_p29) {
-						var _p30 = _p29;
-						return {
-							ctor: '_Tuple2',
-							_0: _user$project$Main$Initial(_p30._0),
-							_1: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$Login, _p30._1)
-						};
-					}(
-						A2(_user$project$Main$updateInitialModel, _p27._0, _p28._0));
-				} else {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-			default:
-				var _p31 = model;
-				if (_p31.ctor === 'Main') {
-					return function (_p32) {
-						var _p33 = _p32;
-						return {
-							ctor: '_Tuple2',
-							_0: _user$project$Main$Main(_p33._0),
-							_1: A2(_elm_lang$core$Platform_Cmd$map, _user$project$Main$App, _p33._1)
-						};
-					}(
-						A2(_user$project$Main$updateMainModel, _p27._0, _p31._0));
-				} else {
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-				}
-		}
-	});
+var _user$project$Main$FacebookLogin = function (a) {
+	return {ctor: 'FacebookLogin', _0: a};
+};
+var _user$project$Main$init = {
+	ctor: '_Tuple2',
+	_0: _user$project$Main$Initial,
+	_1: A2(
+		_elm_lang$core$Task$attempt,
+		function (result) {
+			var _p13 = result;
+			if (_p13.ctor === 'Ok') {
+				return _user$project$Main$FacebookLogin(_p13._0);
+			} else {
+				return _user$project$Main$NoOp;
+			}
+		},
+		A2(
+			_elm_lang$core$Task$andThen,
+			function (_p14) {
+				var _p15 = _p14;
+				return A2(
+					_elm_lang$core$Task$map,
+					function (now) {
+						return {ctor: '_Tuple3', _0: _p15._0, _1: _p15._1, _2: now};
+					},
+					_elm_lang$core$Date$now);
+			},
+			A2(
+				_elm_lang$core$Task$andThen,
+				function (username) {
+					return A2(
+						_elm_lang$core$Task$map,
+						function (messages) {
+							return {ctor: '_Tuple2', _0: username, _1: messages};
+						},
+						_elm_lang$http$Http$toTask(_user$project$Main$getMessages));
+				},
+				_elm_lang$http$Http$toTask(
+					A2(_elm_lang$http$Http$get, '/api/me', _user$project$Main$userDecoder)))))
+};
 var _user$project$Main$main = _elm_lang$html$Html$program(
 	{init: _user$project$Main$init, update: _user$project$Main$update, view: _user$project$Main$view, subscriptions: _user$project$Main$subscriptions})();
 
