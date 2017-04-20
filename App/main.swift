@@ -68,7 +68,8 @@ if let clientID = drop.config["facebook", "clientID"]?.string,
 
 // MARK: Sockets
 
-let room = Room()
+let chat = Chat()
+chat.addChannel(name: "main")
 
 drop.socket("chat") { _, ws in
     var username: String?
@@ -78,12 +79,12 @@ drop.socket("chat") { _, ws in
 
         if let u = json.object?["username"]?.string {
             username = u
-            room.connections[u] = ws
-            try room.bot("\(u) has joined. 👋")
+            chat.channels["main"]?.connections[u] = ws
+            try chat.bot(message: "\(u) has joined. 👋", channel: "main")
         }
 
         if let u = username, let m = json.object?["message"]?.string {
-            try room.send(name: u, message: m)
+            try chat.send(name: u, message: m, channel: "main")
         }
     }
 
@@ -92,8 +93,8 @@ drop.socket("chat") { _, ws in
             return
         }
 
-        room.connections.removeValue(forKey: u)
-        try room.bot("\(u) has left")
+        chat.channels["main"]?.connections.removeValue(forKey: u)
+        try chat.bot(message: "\(u) has left", channel: "main")
     }
 }
 

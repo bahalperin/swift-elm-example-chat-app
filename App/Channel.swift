@@ -1,7 +1,7 @@
 import Foundation
 import Vapor
 
-class Room {
+class Channel {
     var connections: [String: WebSocket]
 
     func bot(_ message: String) throws {
