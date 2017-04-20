@@ -10247,7 +10247,7 @@ var _mgold$elm_date_format$Date_Format$format = F2(
 	});
 var _mgold$elm_date_format$Date_Format$formatISO8601 = _mgold$elm_date_format$Date_Format$format('%Y-%m-%dT%H:%M:%SZ');
 
-var _user$project$Main$webSocketChatUrl = 'ws://localhost:8080/chat';
+var _user$project$Main$webSocketChatUrl = 'ws://localhost:8080/chat/main';
 var _user$project$Main$userDecoder = A2(_elm_lang$core$Json_Decode$field, 'username', _elm_lang$core$Json_Decode$string);
 var _user$project$Main$joinMessage = function (username) {
 	return A2(

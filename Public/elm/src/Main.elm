@@ -357,4 +357,4 @@ getMessages =
 
 webSocketChatUrl : String
 webSocketChatUrl =
-    "ws://localhost:8080/chat"
+    "ws://localhost:8080/chat/main"

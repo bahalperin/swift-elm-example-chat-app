@@ -71,7 +71,7 @@ if let clientID = drop.config["facebook", "clientID"]?.string,
 let chat = Chat()
 chat.addChannel(name: "main")
 
-drop.socket("chat") { _, ws in
+drop.socket("chat", String.self) { _, ws, channel in
     var username: String?
 
     ws.onText = { ws, text in
@@ -79,12 +79,12 @@ drop.socket("chat") { _, ws in
 
         if let u = json.object?["username"]?.string {
             username = u
-            chat.channels["main"]?.connections[u] = ws
-            try chat.bot(message: "\(u) has joined. 👋", channel: "main")
+            chat.channels[channel]?.connections[u] = ws
+            try chat.bot(message: "\(u) has joined. 👋", channel: channel)
         }
 
         if let u = username, let m = json.object?["message"]?.string {
-            try chat.send(name: u, message: m, channel: "main")
+            try chat.send(name: u, message: m, channel: channel)
         }
     }
 
@@ -93,8 +93,8 @@ drop.socket("chat") { _, ws in
             return
         }
 
-        chat.channels["main"]?.connections.removeValue(forKey: u)
-        try chat.bot(message: "\(u) has left", channel: "main")
+        chat.channels[channel]?.connections.removeValue(forKey: u)
+        try chat.bot(message: "\(u) has left", channel: channel)
     }
 }
 
