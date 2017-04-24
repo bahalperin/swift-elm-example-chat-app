@@ -36,6 +36,7 @@ import Html.Events
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
+import RemoteData exposing (RemoteData, WebData)
 import Task
 import Time
 import WebSocket
@@ -65,6 +66,19 @@ type alias MainModel =
     , username : String
     , messages : List Message
     , currentMessage : String
+    , channels : WebData (List Channel)
+    }
+
+
+type alias Channels =
+    { selected : Maybe Channel
+    , others : List Channel
+    }
+
+
+type alias Channel =
+    { name : String
+    , messsages : WebData (List Message)
     }
 
 
@@ -92,8 +106,15 @@ init =
             )
         |> Task.andThen
             (\( username, messages ) ->
+                getChannels
+                    |> Http.toTask
+                    |> RemoteData.fromTask
+                    |> Task.map (\channels -> ( username, messages, channels ))
+            )
+        |> Task.andThen
+            (\( username, messages, channels ) ->
                 Date.now
-                    |> Task.map (\now -> ( username, messages, now ))
+                    |> Task.map (\now -> ( username, messages, channels, now ))
             )
         |> Task.attempt
             (\result ->
@@ -108,7 +129,7 @@ init =
 
 
 type Msg
-    = FacebookLogin ( String, List Message, Date )
+    = FacebookLogin ( String, List Message, WebData (List Channel), Date )
     | SetCurrentMessage String
     | ReceiveMessage String
     | SendMessage
@@ -164,7 +185,7 @@ update msg model =
                 SetCurrentTime time ->
                     ( Main { mainModel | now = time }, Cmd.none )
 
-                FacebookLogin ( username, messages, now ) ->
+                FacebookLogin ( username, messages, channels, now ) ->
                     ( model, Cmd.none )
 
                 NoOp ->
@@ -172,12 +193,13 @@ update msg model =
 
         Initial ->
             case msg of
-                FacebookLogin ( username, messages, now ) ->
+                FacebookLogin ( username, messages, channels, now ) ->
                     ( Main
                         { username = username
                         , now = now
                         , currentMessage = ""
                         , messages = messages
+                        , channels = channels
                         }
                     , Cmd.batch
                         [ joinMessage username
@@ -337,6 +359,13 @@ joinMessage username =
     Json.Encode.encode 0 <| Json.Encode.object [ ( "username", Json.Encode.string username ) ]
 
 
+channelDecoder : Decoder Channel
+channelDecoder =
+    Json.Decode.map2 Channel
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.succeed RemoteData.NotAsked)
+
+
 userDecoder : Decoder String
 userDecoder =
     Json.Decode.field "username" Json.Decode.string
@@ -349,6 +378,11 @@ userDecoder =
 getMessages : Http.Request (List Message)
 getMessages =
     Http.get "/api/messages" (Json.Decode.list messageDecoder)
+
+
+getChannels : Http.Request (List Channel)
+getChannels =
+    Http.get "/api/channels" (Json.Decode.list channelDecoder)
 
 
 

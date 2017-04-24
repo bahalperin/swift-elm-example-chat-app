@@ -32,6 +32,13 @@ drop.group("api") { api in
         return json
     }
 
+    api.get("channels") { _ in
+        let channels = try Channel.query().all()
+        let json = try channels.makeJSON()
+
+        return json
+    }
+
     api.get("me") { request in
         if let userJson = try? JSON(node: request.user().makeNode()) {
             return userJson
@@ -39,6 +46,7 @@ drop.group("api") { api in
 
         return try JSON(node: [])
     }
+
 }
 
 if let clientID = drop.config["facebook", "clientID"]?.string,

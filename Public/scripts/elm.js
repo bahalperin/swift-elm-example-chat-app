@@ -9984,6 +9984,222 @@ var _elm_lang$websocket$WebSocket$onSelfMsg = F3(
 	});
 _elm_lang$core$Native_Platform.effectManagers['WebSocket'] = {pkg: 'elm-lang/websocket', init: _elm_lang$websocket$WebSocket$init, onEffects: _elm_lang$websocket$WebSocket$onEffects, onSelfMsg: _elm_lang$websocket$WebSocket$onSelfMsg, tag: 'fx', cmdMap: _elm_lang$websocket$WebSocket$cmdMap, subMap: _elm_lang$websocket$WebSocket$subMap};
 
+var _krisajenkins$remotedata$RemoteData$isNotAsked = function (data) {
+	var _p0 = data;
+	if (_p0.ctor === 'NotAsked') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _krisajenkins$remotedata$RemoteData$isLoading = function (data) {
+	var _p1 = data;
+	if (_p1.ctor === 'Loading') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _krisajenkins$remotedata$RemoteData$isFailure = function (data) {
+	var _p2 = data;
+	if (_p2.ctor === 'Failure') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _krisajenkins$remotedata$RemoteData$isSuccess = function (data) {
+	var _p3 = data;
+	if (_p3.ctor === 'Success') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var _krisajenkins$remotedata$RemoteData$withDefault = F2(
+	function ($default, data) {
+		var _p4 = data;
+		if (_p4.ctor === 'Success') {
+			return _p4._0;
+		} else {
+			return $default;
+		}
+	});
+var _krisajenkins$remotedata$RemoteData$Success = function (a) {
+	return {ctor: 'Success', _0: a};
+};
+var _krisajenkins$remotedata$RemoteData$succeed = _krisajenkins$remotedata$RemoteData$Success;
+var _krisajenkins$remotedata$RemoteData$prism = {
+	reverseGet: _krisajenkins$remotedata$RemoteData$Success,
+	getOption: function (data) {
+		var _p5 = data;
+		if (_p5.ctor === 'Success') {
+			return _elm_lang$core$Maybe$Just(_p5._0);
+		} else {
+			return _elm_lang$core$Maybe$Nothing;
+		}
+	}
+};
+var _krisajenkins$remotedata$RemoteData$Failure = function (a) {
+	return {ctor: 'Failure', _0: a};
+};
+var _krisajenkins$remotedata$RemoteData$fromResult = function (result) {
+	var _p6 = result;
+	if (_p6.ctor === 'Err') {
+		return _krisajenkins$remotedata$RemoteData$Failure(_p6._0);
+	} else {
+		return _krisajenkins$remotedata$RemoteData$Success(_p6._0);
+	}
+};
+var _krisajenkins$remotedata$RemoteData$asCmd = _elm_lang$core$Task$attempt(_krisajenkins$remotedata$RemoteData$fromResult);
+var _krisajenkins$remotedata$RemoteData$sendRequest = _elm_lang$http$Http$send(_krisajenkins$remotedata$RemoteData$fromResult);
+var _krisajenkins$remotedata$RemoteData$fromTask = function (_p7) {
+	return A2(
+		_elm_lang$core$Task$onError,
+		function (_p8) {
+			return _elm_lang$core$Task$succeed(
+				_krisajenkins$remotedata$RemoteData$Failure(_p8));
+		},
+		A2(_elm_lang$core$Task$map, _krisajenkins$remotedata$RemoteData$Success, _p7));
+};
+var _krisajenkins$remotedata$RemoteData$Loading = {ctor: 'Loading'};
+var _krisajenkins$remotedata$RemoteData$NotAsked = {ctor: 'NotAsked'};
+var _krisajenkins$remotedata$RemoteData$map = F2(
+	function (f, data) {
+		var _p9 = data;
+		switch (_p9.ctor) {
+			case 'Success':
+				return _krisajenkins$remotedata$RemoteData$Success(
+					f(_p9._0));
+			case 'Loading':
+				return _krisajenkins$remotedata$RemoteData$Loading;
+			case 'NotAsked':
+				return _krisajenkins$remotedata$RemoteData$NotAsked;
+			default:
+				return _krisajenkins$remotedata$RemoteData$Failure(_p9._0);
+		}
+	});
+var _krisajenkins$remotedata$RemoteData$toMaybe = function (_p10) {
+	return A2(
+		_krisajenkins$remotedata$RemoteData$withDefault,
+		_elm_lang$core$Maybe$Nothing,
+		A2(_krisajenkins$remotedata$RemoteData$map, _elm_lang$core$Maybe$Just, _p10));
+};
+var _krisajenkins$remotedata$RemoteData$mapError = F2(
+	function (f, data) {
+		var _p11 = data;
+		switch (_p11.ctor) {
+			case 'Success':
+				return _krisajenkins$remotedata$RemoteData$Success(_p11._0);
+			case 'Failure':
+				return _krisajenkins$remotedata$RemoteData$Failure(
+					f(_p11._0));
+			case 'Loading':
+				return _krisajenkins$remotedata$RemoteData$Loading;
+			default:
+				return _krisajenkins$remotedata$RemoteData$NotAsked;
+		}
+	});
+var _krisajenkins$remotedata$RemoteData$mapBoth = F3(
+	function (successFn, errorFn, data) {
+		var _p12 = data;
+		switch (_p12.ctor) {
+			case 'Success':
+				return _krisajenkins$remotedata$RemoteData$Success(
+					successFn(_p12._0));
+			case 'Failure':
+				return _krisajenkins$remotedata$RemoteData$Failure(
+					errorFn(_p12._0));
+			case 'Loading':
+				return _krisajenkins$remotedata$RemoteData$Loading;
+			default:
+				return _krisajenkins$remotedata$RemoteData$NotAsked;
+		}
+	});
+var _krisajenkins$remotedata$RemoteData$andThen = F2(
+	function (f, data) {
+		var _p13 = data;
+		switch (_p13.ctor) {
+			case 'Success':
+				return f(_p13._0);
+			case 'Failure':
+				return _krisajenkins$remotedata$RemoteData$Failure(_p13._0);
+			case 'NotAsked':
+				return _krisajenkins$remotedata$RemoteData$NotAsked;
+			default:
+				return _krisajenkins$remotedata$RemoteData$Loading;
+		}
+	});
+var _krisajenkins$remotedata$RemoteData$andMap = F2(
+	function (wrappedValue, wrappedFunction) {
+		var _p14 = wrappedFunction;
+		switch (_p14.ctor) {
+			case 'Success':
+				return A2(_krisajenkins$remotedata$RemoteData$map, _p14._0, wrappedValue);
+			case 'Failure':
+				return _krisajenkins$remotedata$RemoteData$Failure(_p14._0);
+			case 'Loading':
+				return _krisajenkins$remotedata$RemoteData$Loading;
+			default:
+				return _krisajenkins$remotedata$RemoteData$NotAsked;
+		}
+	});
+var _krisajenkins$remotedata$RemoteData$map2 = F3(
+	function (f, a, b) {
+		return A2(
+			_krisajenkins$remotedata$RemoteData$andMap,
+			b,
+			A2(_krisajenkins$remotedata$RemoteData$map, f, a));
+	});
+var _krisajenkins$remotedata$RemoteData$map3 = F4(
+	function (f, a, b, c) {
+		return A2(
+			_krisajenkins$remotedata$RemoteData$andMap,
+			c,
+			A2(
+				_krisajenkins$remotedata$RemoteData$andMap,
+				b,
+				A2(_krisajenkins$remotedata$RemoteData$map, f, a)));
+	});
+var _krisajenkins$remotedata$RemoteData$append = F2(
+	function (a, b) {
+		return A2(
+			_krisajenkins$remotedata$RemoteData$andMap,
+			b,
+			A2(
+				_krisajenkins$remotedata$RemoteData$map,
+				F2(
+					function (v0, v1) {
+						return {ctor: '_Tuple2', _0: v0, _1: v1};
+					}),
+				a));
+	});
+var _krisajenkins$remotedata$RemoteData$update = F2(
+	function (f, remoteData) {
+		var _p15 = remoteData;
+		switch (_p15.ctor) {
+			case 'Success':
+				var _p16 = f(_p15._0);
+				var first = _p16._0;
+				var second = _p16._1;
+				return {
+					ctor: '_Tuple2',
+					_0: _krisajenkins$remotedata$RemoteData$Success(first),
+					_1: second
+				};
+			case 'NotAsked':
+				return {ctor: '_Tuple2', _0: _krisajenkins$remotedata$RemoteData$NotAsked, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'Loading':
+				return {ctor: '_Tuple2', _0: _krisajenkins$remotedata$RemoteData$Loading, _1: _elm_lang$core$Platform_Cmd$none};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: _krisajenkins$remotedata$RemoteData$Failure(_p15._0),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+		}
+	});
+
 var _mgold$elm_date_format$Date_Local$international = {
 	date: {
 		months: {jan: 'January', feb: 'February', mar: 'March', apr: 'April', may: 'May', jun: 'June', jul: 'July', aug: 'August', sep: 'September', oct: 'October', nov: 'November', dec: 'December'},
@@ -10471,10 +10687,27 @@ var _user$project$Main$modal = F2(
 				}
 			});
 	});
-var _user$project$Main$MainModel = F4(
-	function (a, b, c, d) {
-		return {now: a, username: b, messages: c, currentMessage: d};
+var _user$project$Main$MainModel = F5(
+	function (a, b, c, d, e) {
+		return {now: a, username: b, messages: c, currentMessage: d, channels: e};
 	});
+var _user$project$Main$Channels = F2(
+	function (a, b) {
+		return {selected: a, others: b};
+	});
+var _user$project$Main$Channel = F2(
+	function (a, b) {
+		return {name: a, messsages: b};
+	});
+var _user$project$Main$channelDecoder = A3(
+	_elm_lang$core$Json_Decode$map2,
+	_user$project$Main$Channel,
+	A2(_elm_lang$core$Json_Decode$field, 'name', _elm_lang$core$Json_Decode$string),
+	_elm_lang$core$Json_Decode$succeed(_krisajenkins$remotedata$RemoteData$NotAsked));
+var _user$project$Main$getChannels = A2(
+	_elm_lang$http$Http$get,
+	'/api/channels',
+	_elm_lang$core$Json_Decode$list(_user$project$Main$channelDecoder));
 var _user$project$Main$Message = F3(
 	function (a, b, c) {
 		return {username: a, content: b, created: c};
@@ -10620,12 +10853,12 @@ var _user$project$Main$update = F2(
 			}
 		} else {
 			var _p7 = msg;
-			if ((_p7.ctor === 'FacebookLogin') && (_p7._0.ctor === '_Tuple3')) {
+			if ((_p7.ctor === 'FacebookLogin') && (_p7._0.ctor === '_Tuple4')) {
 				var _p9 = _p7._0._0;
 				return {
 					ctor: '_Tuple2',
 					_0: _user$project$Main$Main(
-						{username: _p9, now: _p7._0._2, currentMessage: '', messages: _p7._0._1}),
+						{username: _p9, now: _p7._0._3, currentMessage: '', messages: _p7._0._1, channels: _p7._0._2}),
 					_1: _elm_lang$core$Platform_Cmd$batch(
 						{
 							ctor: '::',
@@ -10887,22 +11120,34 @@ var _user$project$Main$init = {
 				return A2(
 					_elm_lang$core$Task$map,
 					function (now) {
-						return {ctor: '_Tuple3', _0: _p15._0, _1: _p15._1, _2: now};
+						return {ctor: '_Tuple4', _0: _p15._0, _1: _p15._1, _2: _p15._2, _3: now};
 					},
 					_elm_lang$core$Date$now);
 			},
 			A2(
 				_elm_lang$core$Task$andThen,
-				function (username) {
+				function (_p16) {
+					var _p17 = _p16;
 					return A2(
 						_elm_lang$core$Task$map,
-						function (messages) {
-							return {ctor: '_Tuple2', _0: username, _1: messages};
+						function (channels) {
+							return {ctor: '_Tuple3', _0: _p17._0, _1: _p17._1, _2: channels};
 						},
-						_elm_lang$http$Http$toTask(_user$project$Main$getMessages));
+						_krisajenkins$remotedata$RemoteData$fromTask(
+							_elm_lang$http$Http$toTask(_user$project$Main$getChannels)));
 				},
-				_elm_lang$http$Http$toTask(
-					A2(_elm_lang$http$Http$get, '/api/me', _user$project$Main$userDecoder)))))
+				A2(
+					_elm_lang$core$Task$andThen,
+					function (username) {
+						return A2(
+							_elm_lang$core$Task$map,
+							function (messages) {
+								return {ctor: '_Tuple2', _0: username, _1: messages};
+							},
+							_elm_lang$http$Http$toTask(_user$project$Main$getMessages));
+					},
+					_elm_lang$http$Http$toTask(
+						A2(_elm_lang$http$Http$get, '/api/me', _user$project$Main$userDecoder))))))
 };
 var _user$project$Main$main = _elm_lang$html$Html$program(
 	{init: _user$project$Main$init, update: _user$project$Main$update, view: _user$project$Main$view, subscriptions: _user$project$Main$subscriptions})();
