@@ -14,9 +14,9 @@ class Chat {
         }
     }
 
-	func addChannel(name: String) {
-		channels[name] = Channel()
-	}
+    func addChannel(name: String) {
+        channels[name] = Channel(name: name)
+    }
 
     init() {
         channels = [:]

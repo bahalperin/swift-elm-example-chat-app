@@ -12,6 +12,7 @@ let drop = Droplet(workDir: workDir)
 
 drop.middleware.append(AuthMiddleware(user: User.self))
 drop.preparations.append(Message.self)
+drop.preparations.append(Channel.self)
 drop.preparations.append(User.self)
 try drop.addProvider(VaporPostgreSQL.Provider.self)
 
@@ -66,13 +67,15 @@ if let clientID = drop.config["facebook", "clientID"]?.string,
     }
 }
 
-// MARK: Sockets
-
 let chat = Chat()
-chat.addChannel(name: "main")
 
 drop.socket("chat", String.self) { _, ws, channel in
     var username: String?
+
+    if chat.channels[channel] == nil {
+        let c = try Channel.query().filter("name", channel).first()
+        chat.channels[channel] = c
+    }
 
     ws.onText = { ws, text in
         let json = try JSON(bytes: Array(text.utf8))
@@ -99,3 +102,4 @@ drop.socket("chat", String.self) { _, ws, channel in
 }
 
 drop.run()
+
