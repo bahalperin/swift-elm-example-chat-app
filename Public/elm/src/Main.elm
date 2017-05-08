@@ -40,6 +40,11 @@ import RemoteData exposing (RemoteData, WebData)
 import Task
 import Time
 import WebSocket
+import Data.Channel exposing (Channel)
+import Data.Message exposing (Message)
+import Data.User exposing (Username)
+import Request.Channel
+import Request.Message
 
 
 main : Program Never Model Msg
@@ -63,29 +68,10 @@ type Model
 
 type alias MainModel =
     { now : Date
-    , username : String
+    , username : Username
     , messages : List Message
     , currentMessage : String
     , channels : WebData (List Channel)
-    }
-
-
-type alias Channels =
-    { selected : Maybe Channel
-    , others : List Channel
-    }
-
-
-type alias Channel =
-    { name : String
-    , messsages : WebData (List Message)
-    }
-
-
-type alias Message =
-    { username : String
-    , content : String
-    , created : Maybe Date
     }
 
 
@@ -96,17 +82,17 @@ type alias Message =
 init : ( Model, Cmd Msg )
 init =
     ( Initial
-    , Http.get "/api/me" userDecoder
+    , Http.get "/api/me" Data.User.decoder
         |> Http.toTask
         |> Task.andThen
             (\username ->
-                getMessages
+                Request.Message.get
                     |> Http.toTask
                     |> Task.map (\messages -> ( username, messages ))
             )
         |> Task.andThen
             (\( username, messages ) ->
-                getChannels
+                Request.Channel.get
                     |> Http.toTask
                     |> RemoteData.fromTask
                     |> Task.map (\channels -> ( username, messages, channels ))
@@ -160,7 +146,7 @@ update msg model =
                     ( Main { mainModel | currentMessage = message }, Cmd.none )
 
                 ReceiveMessage messageJson ->
-                    case decodeMessage messageJson of
+                    case Data.Message.decode messageJson of
                         Ok message ->
                             ( Main { mainModel | messages = List.append mainModel.messages [ { message | created = Just mainModel.now } ] }
                             , Cmd.batch
@@ -174,7 +160,7 @@ update msg model =
                 SendMessage ->
                     ( Main { mainModel | currentMessage = "", messages = List.append mainModel.messages [ { username = mainModel.username, content = mainModel.currentMessage, created = Just mainModel.now } ] }
                     , Cmd.batch
-                        [ WebSocket.send webSocketChatUrl (encodeMessage { username = mainModel.username, content = mainModel.currentMessage, created = Just mainModel.now })
+                        [ WebSocket.send webSocketChatUrl (Data.Message.encode { username = mainModel.username, content = mainModel.currentMessage, created = Just mainModel.now })
                         , Task.attempt (\_ -> NoOp) (Dom.Scroll.toBottom messageContainerId)
                         ]
                     )
@@ -195,7 +181,7 @@ update msg model =
             case msg of
                 FacebookLogin ( username, messages, channels, now ) ->
                     ( Main
-                        { username = username
+                        { username = Data.User.usernameFromString username
                         , now = now
                         , currentMessage = ""
                         , messages = messages
@@ -296,7 +282,7 @@ loginModalContent =
         ]
 
 
-viewMessage : String -> Message -> Html Msg
+viewMessage : Username -> Message -> Html Msg
 viewMessage username message =
     div
         [ classList
@@ -311,7 +297,7 @@ viewMessage username message =
             ]
             []
         , span [ class "text" ]
-            [ text <| message.username ++ ": " ++ message.content
+            [ text <| (Data.User.usernameToString message.username) ++ ": " ++ message.content
             ]
         , case message.created of
             Just date ->
@@ -333,56 +319,9 @@ messageContainerId =
 -- ENCODE/DECODE
 
 
-encodeMessage : Message -> String
-encodeMessage message =
-    Json.Encode.encode 0 <|
-        Json.Encode.object
-            [ ( "message", Json.Encode.string message.content )
-            ]
-
-
-decodeMessage : String -> Result String Message
-decodeMessage messageJson =
-    Json.Decode.decodeString messageDecoder messageJson
-
-
-messageDecoder : Decoder Message
-messageDecoder =
-    Json.Decode.map3 Message
-        (Json.Decode.field "username" Json.Decode.string)
-        (Json.Decode.field "content" Json.Decode.string)
-        (Json.Decode.succeed Nothing)
-
-
 joinMessage : String -> String
 joinMessage username =
     Json.Encode.encode 0 <| Json.Encode.object [ ( "username", Json.Encode.string username ) ]
-
-
-channelDecoder : Decoder Channel
-channelDecoder =
-    Json.Decode.map2 Channel
-        (Json.Decode.field "name" Json.Decode.string)
-        (Json.Decode.succeed RemoteData.NotAsked)
-
-
-userDecoder : Decoder String
-userDecoder =
-    Json.Decode.field "username" Json.Decode.string
-
-
-
--- API
-
-
-getMessages : Http.Request (List Message)
-getMessages =
-    Http.get "/api/messages" (Json.Decode.list messageDecoder)
-
-
-getChannels : Http.Request (List Channel)
-getChannels =
-    Http.get "/api/channels" (Json.Decode.list channelDecoder)
 
 
 
