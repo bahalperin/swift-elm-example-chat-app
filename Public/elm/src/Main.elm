@@ -95,38 +95,6 @@ init location =
     )
 
 
-
-{--
-        |> Task.andThen
-            (\username ->
-                Request.Message.get
-                    |> Http.toTask
-                    |> Task.map (\messages -> ( username, messages ))
-            )
-        |> Task.andThen
-            (\( username, messages ) ->
-                Request.Channel.get
-                    |> Http.toTask
-                    |> RemoteData.fromTask
-                    |> Task.map (\channels -> ( username, messages, channels ))
-            )
-        |> Task.andThen
-            (\( username, messages, channels ) ->
-                Date.now
-                    |> Task.map (\now -> ( username, messages, channels, now ))
-            )
-        |> Task.attempt
-            (\result ->
-                case result of
-                    Ok payload ->
-                        FacebookLogin payload
-
-                    Err err ->
-                        NoOp
-            )
---}
-
-
 type Msg
     = ChatMsg Page.Chat.Msg
     | SetRoute Route
